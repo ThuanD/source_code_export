@@ -26,7 +26,7 @@ class SourceCodeExporter:
             ".env",
             ".venv",
             "venv",
-            "export.py",
+            "source_code_export.py",
             "output.txt"
         }
 
