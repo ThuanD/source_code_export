@@ -49,6 +49,7 @@ python source_code_export.py /path/to/project -o my_export.txt
 
 # Exclude some directories/files
 python source_code_export.py /path/to/project --exclude "test/*" "*.log"
+python source_code_export.py . -e postgresql logs migrations translations
 
 # Exclude some extensions
 python source_code_export.py /path/to/project --exclude-ext .pyc .jar
