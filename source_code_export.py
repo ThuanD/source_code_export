@@ -27,7 +27,7 @@ class SourceCodeExporter:
             ".venv",
             "venv",
             "source_code_export.py",
-            "output.txt"
+            "source_code_export.txt"
         }
 
     def _should_exclude(self, path: Path) -> bool:
