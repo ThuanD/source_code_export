@@ -22,6 +22,7 @@ class SourceCodeExporter:
             ".idea",
             ".ruff_cache",
             ".git",
+            ".pytest_cache",
             "__pycache__",
             ".env",
             ".venv",
