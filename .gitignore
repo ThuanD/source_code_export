@@ -98,3 +98,7 @@ ENV/
 .idea
 .vscode/*
 settings.json
+
+*.txt
+*.json
+*.spec
