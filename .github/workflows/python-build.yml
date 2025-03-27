@@ -33,7 +33,8 @@ jobs:
           pyinstaller --onefile main.py
 
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
-          name: executable-${{ matrix.os }}-${{ matrix.python-version }}
+          name: source-code-export-${{ matrix.os }}-${{ matrix.python-version }}
           path: dist/
+          retention-days: 5
