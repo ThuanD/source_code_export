@@ -3,17 +3,18 @@ import logging
 from pathlib import Path
 from typing import List, TextIO
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(message)s")
 
 
 class SourceCodeExporter:
     """Export source code structure and contents to text file."""
 
-    def __init__(self, root_path: str, exclude_paths: List[str] = None,
-                 exclude_extensions: List[str] = None) -> None:
+    def __init__(
+        self,
+        root_path: str,
+        exclude_paths: List[str] = None,
+        exclude_extensions: List[str] = None,
+    ) -> None:
         """Initialize exporter with root path and exclude patterns."""
         self.root_path = Path(root_path)
         self.exclude_paths = set(exclude_paths or [])
@@ -28,7 +29,7 @@ class SourceCodeExporter:
             ".venv",
             "venv",
             "source_code_export.py",
-            "source_code_export.txt"
+            "source_code_export.txt",
         }
 
     def _should_exclude(self, path: Path) -> bool:
@@ -75,8 +76,9 @@ class SourceCodeExporter:
 
         if current_path.is_dir():
             # Sort files and directories
-            paths = sorted(current_path.iterdir(),
-                           key=lambda x: (x.is_file(), x.name.lower()))
+            paths = sorted(
+                current_path.iterdir(), key=lambda x: (x.is_file(), x.name.lower())
+            )
 
             for path in paths:
                 self._write_structure(path, f, level + 1)
@@ -104,10 +106,35 @@ class SourceCodeExporter:
     def _is_text_file(self, file_path: Path) -> bool:
         """Check if file is a text file based on extension."""
         text_extensions = {
-            '.txt', '.py', '.js', '.jsx', '.ts', '.tsx', '.html', '.css',
-            '.json', '.yml', '.yaml', '.md', '.rst', '.ini', '.conf',
-            '.sh', '.bash', '.env', '.sql', '.xml', '.java', '.cpp', '.c',
-            '.h', '.hpp', '.cs', '.php', '.rb', '.go'
+            ".txt",
+            ".py",
+            ".js",
+            ".jsx",
+            ".ts",
+            ".tsx",
+            ".html",
+            ".css",
+            ".json",
+            ".yml",
+            ".yaml",
+            ".md",
+            ".rst",
+            ".ini",
+            ".conf",
+            ".sh",
+            ".bash",
+            ".env",
+            ".sql",
+            ".xml",
+            ".java",
+            ".cpp",
+            ".c",
+            ".h",
+            ".hpp",
+            ".cs",
+            ".php",
+            ".rb",
+            ".go",
         }
         return file_path.suffix.lower() in text_extensions
 
@@ -115,21 +142,33 @@ class SourceCodeExporter:
 def main() -> None:
     """Parse command-line arguments and export source code."""
     parser = argparse.ArgumentParser(
-        description="Export source code structure and contents to text file")
+        description="Export source code structure and contents to text file"
+    )
     parser.add_argument("path", help="Root path of the project")
-    parser.add_argument("--output", "-o", default="source_code_export.txt",
-                        help="Output file path (default: source_code_export.txt)")
-    parser.add_argument("--exclude", "-e", nargs="*", default=[],
-                        help="Paths to exclude (supports glob patterns)")
-    parser.add_argument("--exclude-ext", nargs="*", default=[],
-                        help="File extensions to exclude (e.g., .pyc .jar)")
+    parser.add_argument(
+        "--output",
+        "-o",
+        default="source_code_export.txt",
+        help="Output file path (default: source_code_export.txt)",
+    )
+    parser.add_argument(
+        "--exclude",
+        "-e",
+        nargs="*",
+        default=[],
+        help="Paths to exclude (supports glob patterns)",
+    )
+    parser.add_argument(
+        "--exclude-ext",
+        nargs="*",
+        default=[],
+        help="File extensions to exclude (e.g., .pyc .jar)",
+    )
 
     args = parser.parse_args()
 
     exporter = SourceCodeExporter(
-        args.path,
-        exclude_paths=args.exclude,
-        exclude_extensions=args.exclude_ext
+        args.path, exclude_paths=args.exclude, exclude_extensions=args.exclude_ext
     )
 
     exporter.export_structure(args.output)
