@@ -1,0 +1,103 @@
+name: Build and Release Executable
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Build Executable
+        run: |
+          pyinstaller --onedir --noconsole main.py --name main-${{ matrix.os }}-py${{ matrix.python-version }}
+
+      - name: Create Installer (Windows only)
+        if: matrix.os == 'windows-latest'
+        run: |
+          # Install Inno Setup
+          choco install innosetup --force
+          # Create file script Inno Setup
+          $content = @"
+          [Setup]
+          AppName=Source-Code-Export
+          AppVersion=0.1.1
+          DefaultDirName={autopf}\Source-Code-Export
+          DefaultGroupName=Source-Code-Export
+          OutputDir=.\dist
+          OutputBaseFilename=Source-Code-Export-Installer-${{ matrix.os }}-py${{ matrix.python-version }}
+          Compression=lzma
+          SolidCompression=yes
+
+          [Files]
+          Source: "dist\main-${{ matrix.os }}-py${{ matrix.python-version }}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+
+          [Icons]
+          Name: "{group}\Source-Code-Export"; Filename: "{app}\main-${{ matrix.os }}-py${{ matrix.python-version }}.exe"
+          "@
+          Set-Content -Path setup.iss -Value $content
+          # Compile installer
+          & "C:\Program Files (x86)\Inno Setup 6\iscc.exe" setup.iss
+        shell: pwsh
+
+      - name: Compress Executable Directory
+        run: |
+          # Compress folder dist/main-${{ matrix.os }}-py${{ matrix.python-version }}/
+          cd dist
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            7z a main-${{ matrix.os }}-py${{ matrix.python-version }}.zip main-${{ matrix.os }}-py${{ matrix.python-version }}/
+          else
+            tar -czvf main-${{ matrix.os }}-py${{ matrix.python-version }}.tar.gz main-${{ matrix.os }}-py${{ matrix.python-version }}/
+          fi
+        shell: bash
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-code-export-${{ matrix.os }}-${{ matrix.python-version }}
+          path: |
+            dist/main-${{ matrix.os }}-py${{ matrix.python-version }}.zip
+            dist/main-${{ matrix.os }}-py${{ matrix.python-version }}.tar.gz
+            dist/Source-Code-Export-Installer-${{ matrix.os }}-py${{ matrix.python-version }}.exe
+          retention-days: 5
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/') && matrix.python-version == '3.12'
+        with:
+          files: |
+            dist/main-${{ matrix.os }}-py${{ matrix.python-version }}.zip
+            dist/main-${{ matrix.os }}-py${{ matrix.python-version }}.tar.gz
+            dist/Source-Code-Export-Installer-${{ matrix.os }}-py${{ matrix.python-version }}.exe
+          name: Release ${{ github.ref_name }}
+          body: |
+            Release ${{ github.ref_name }}
+
+            This version is built automatically from GitHub Actions for multiple platforms:
+            - Windows, macOS, and Linux executables (Python ${{ matrix.python-version }})
+            - Windows installer available for easy installation. 
+            If Windows SmartScreen warns about the installer, click "More info" and select "Run anyway".
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

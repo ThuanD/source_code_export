@@ -13,27 +13,30 @@ from tkinter import ttk, messagebox, filedialog
 from dialog import ExcludePathHelpDialog, ExcludeExtensionHelpDialog
 from source_code_export import SourceCodeExporter
 
+
+def get_data_dir() -> Path:
+    """Gets a user-writable directory for application data."""
+    if getattr(sys, "frozen", False):
+        if sys.platform == "win32":
+            data_dir = Path(os.getenv("APPDATA")) / "Source-Code-Export"
+        else:
+            data_dir = Path.home() / ".source_code_export"
+    else:
+        # Running as a normal Python script
+        data_dir = Path(__file__).parent
+    data_dir.mkdir(exist_ok=True)
+    return data_dir
+
+
 # --- Constants ---
 APP_NAME = "Source Code Exporter"
 HISTORY_FILENAME = "export_history.json"
 LOG_FILENAME = "app.log"
 DEFAULT_OUTPUT_FILENAME = "source_code_export.txt"
 
-
-# --- Helper Function for PyInstaller ---
-def get_app_dir() -> Path:
-    """Gets the directory where the application executable or script is located."""
-    if getattr(sys, "frozen", False):
-        # Running as a bundled executable (PyInstaller)
-        return Path(sys.executable).parent
-    else:
-        # Running as a normal Python script
-        return Path(__file__).parent
-
-
 # --- Logging Configuration ---
-APP_DIR = get_app_dir()
-LOG_FILE_PATH = APP_DIR / LOG_FILENAME
+DATA_DIR = get_data_dir()
+LOG_FILE_PATH = DATA_DIR / LOG_FILENAME
 
 # Configure root logger
 log_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
@@ -54,15 +57,15 @@ except Exception as e:
     print(f"Error setting up file logging: {e}")  # Print error if logging fails
 
 logger.info("Application started.")
-logger.info(f"Application directory: {APP_DIR}")
+logger.info(f"Data directory: {DATA_DIR}")
 logger.info(f"Log file: {LOG_FILE_PATH}")
 
 
 class App:
     def __init__(self, root: tk.Tk):
         self.root = root
-        self.app_dir = APP_DIR
-        self.history_file = self.app_dir / HISTORY_FILENAME
+        self.data_dir = DATA_DIR
+        self.history_file = self.data_dir / HISTORY_FILENAME
         logger.info(f"History file location: {self.history_file}")
 
         self.history = self.load_history()
