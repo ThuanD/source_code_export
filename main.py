@@ -10,7 +10,7 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 
-from dialog import ExcludePathHelpDialog, ExcludeExtensionHelpDialog
+from dialog import ExcludeExtensionHelpDialog, ExcludePathsBrowserDialog
 from source_code_export import SourceCodeExporter
 
 
@@ -247,35 +247,45 @@ class App:
         self.exclude_ext_var = tk.StringVar(value=" ".join(map(str, exclude_ext_list)))
 
         # --- Input Fields ---
-        fields = [
-            ("Project Path", self.path_var, self.browse_input_folder, "Browse"),
-            (
-                "Output File",
-                self.output_var,
-                self.browse_output_file,
-                "Browse",
-            ),  # Changed command
-            ("Exclude Paths", self.exclude_var, self.show_exclude_path_help, "Help"),
-            (
-                "Exclude Exts",
-                self.exclude_ext_var,
-                self.show_exclude_extension_help,
-                "Help",
-            ),
-        ]
+        # Project Path
+        ttk.Label(input_frame, text="Project Path:").grid(
+            row=0, column=0, padx=5, pady=5, sticky="w"
+        )
+        entry = ttk.Entry(input_frame, textvariable=self.path_var, width=60)
+        entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        ttk.Button(input_frame, text="Browse", command=self.browse_input_folder).grid(
+            row=0, column=2, padx=5, pady=5
+        )
 
-        for i, (label, var, command, btn_text) in enumerate(fields):
-            ttk.Label(input_frame, text=label + ":").grid(
-                row=i, column=0, padx=5, pady=5, sticky="w"
-            )
-            entry = ttk.Entry(
-                input_frame, textvariable=var, width=60
-            )  # Increased width
-            entry.grid(row=i, column=1, padx=5, pady=5, sticky="ew")
-            if command:
-                ttk.Button(input_frame, text=btn_text, command=command).grid(
-                    row=i, column=2, padx=5, pady=5
-                )
+        # Output File
+        ttk.Label(input_frame, text="Output File:").grid(
+            row=1, column=0, padx=5, pady=5, sticky="w"
+        )
+        entry = ttk.Entry(input_frame, textvariable=self.output_var, width=60)
+        entry.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        ttk.Button(input_frame, text="Browse", command=self.browse_output_file).grid(
+            row=1, column=2, padx=5, pady=5
+        )
+
+        # Exclude Paths
+        ttk.Label(input_frame, text="Exclude Paths:").grid(
+            row=2, column=0, padx=5, pady=5, sticky="w"
+        )
+        entry = ttk.Entry(input_frame, textvariable=self.exclude_var, width=60)
+        entry.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+        ttk.Button(input_frame, text="Browse", command=self.browse_exclude_paths).grid(
+            row=2, column=2, padx=5, pady=5
+        )
+
+        # Exclude Extensions
+        ttk.Label(input_frame, text="Exclude Exts:").grid(
+            row=3, column=0, padx=5, pady=5, sticky="w"
+        )
+        entry = ttk.Entry(input_frame, textvariable=self.exclude_ext_var, width=60)
+        entry.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+        ttk.Button(input_frame, text="Help", command=self.show_exclude_extension_help).grid(
+            row=3, column=2, padx=5, pady=5
+        )
 
         input_frame.columnconfigure(1, weight=1)  # Make entry field expand
 
@@ -296,6 +306,44 @@ class App:
             ttk.Button(
                 btn_frame, text="Delete This Entry", command=self.delete_current_export
             ).pack(side="left", padx=5)
+
+    def browse_exclude_paths(self):
+        """Opens a dialog to select multiple paths to exclude."""
+        # Check if project path is set
+        project_path = self.path_var.get().strip()
+        if not project_path:
+            messagebox.showwarning(
+                "Warning", 
+                "Please select a project path first.", 
+                parent=self.root
+            )
+            return
+        
+        # Validate project path
+        project_path_obj = self._validate_path(project_path, check_exists=True)
+        if not project_path_obj:
+            messagebox.showerror(
+                "Error",
+                f"Project path does not exist or is invalid:\n{project_path}",
+                parent=self.root
+            )
+            return
+        
+        # Parse current excludes
+        current_excludes = [p.strip() for p in self.exclude_var.get().split() if p.strip()]
+        
+        # Open the dialog
+        dialog = ExcludePathsBrowserDialog(
+            self.root, 
+            project_path_obj, 
+            current_excludes,
+            "Select Paths to Exclude"
+        )
+        
+        # If user clicked OK and selected paths
+        if dialog.result is not None:
+            # Update the exclude_var with the selected paths
+            self.exclude_var.set(" ".join(dialog.result))
 
     def browse_input_folder(self):
         """Opens a dialog to select the input project folder."""
@@ -346,10 +394,6 @@ class App:
         if filepath:
             self.output_var.set(filepath)
             logger.debug(f"Output file selected: {filepath}")
-
-    def show_exclude_path_help(self):
-        """Shows the help dialog for excluding paths."""
-        ExcludePathHelpDialog(self.root, title="Exclude Paths Help")
 
     def show_exclude_extension_help(self):
         """Shows the help dialog for excluding extensions."""

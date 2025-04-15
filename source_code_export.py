@@ -86,7 +86,7 @@ class SourceCodeExporter:
             return
 
         if level > 0:  # Don't write root directory
-            f.write(f"{self._get_indent(level - 1)}{current_path.name}\n")
+            f.write(f"{self._get_indent(level - 1)}{current_path.relative_to(self.root_path)}\n")
 
         if current_path.is_dir():
             # Sort files and directories
