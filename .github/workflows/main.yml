@@ -41,9 +41,10 @@ jobs:
           $content = @"
           [Setup]
           AppName=Source-Code-Export
-          AppVersion=0.1.1
+          AppVersion=0.1.2
           DefaultDirName={autopf}\Source-Code-Export
           DefaultGroupName=Source-Code-Export
+          SetupIconFile=.\app.png
           OutputDir=.\dist
           OutputBaseFilename=Source-Code-Export-Installer-${{ matrix.os }}-py${{ matrix.python-version }}
           Compression=lzma

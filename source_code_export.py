@@ -19,18 +19,32 @@ class SourceCodeExporter:
         self.root_path = Path(root_path)
         self.exclude_paths = set(exclude_paths or [])
         self.exclude_extensions = set(exclude_extensions or [])
-        self.default_excludes = {
-            ".idea",
-            ".ruff_cache",
-            ".git",
-            ".pytest_cache",
-            "__pycache__",
-            ".env",
-            ".venv",
-            "venv",
-            "source_code_export.py",
-            "source_code_export.txt",
-        }
+        
+        gitignore_path = self.root_path / '.gitignore'
+        self.default_excludes = set()
+        if gitignore_path.is_file():
+            with gitignore_path.open('r', encoding='utf-8') as f:
+                self.default_excludes = {
+                    line.strip().lstrip('/') for line in f if line.strip() and not line.startswith('#')}
+            self.default_excludes.update({
+                ".git",
+                ".ruff_cache",
+                "package-lock.json",
+                "pnpm-lock.yaml",
+            })
+        else:
+            self.default_excludes = {
+                ".idea",
+                ".ruff_cache",
+                ".git",
+                ".pytest_cache",
+                "__pycache__",
+                ".env",
+                ".venv",
+                "venv",
+                "source_code_export.py",
+                "source_code_export.txt",
+            }
 
     def _should_exclude(self, path: Path) -> bool:
         """Check if path should be excluded."""
