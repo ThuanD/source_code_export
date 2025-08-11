@@ -22,15 +22,28 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
+      
+      # Install uv package manager
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
+      # Install project dependencies using uv
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          export PATH="$HOME/.cargo/bin:$PATH"
+          uv pip install --system .
+      
+      # Run code linting checks
+      - name: Run linting
+        run: |
+          export PATH="$HOME/.cargo/bin:$PATH"
+          uvx ruff check .
 
       - name: Build Executable
         run: |
-          pyinstaller --onedir --noconsole main.py --name main-${{ matrix.os }}-py${{ matrix.python-version }}
+          pyinstaller --onedir --noconsole run.py --name source-code-export-${{ matrix.os }}-py${{ matrix.python-version }}
 
       - name: Create Installer (Windows only)
         if: matrix.os == 'windows-latest'
