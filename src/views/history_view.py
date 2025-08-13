@@ -19,148 +19,102 @@ class HistoryView(BaseView):
 
     def create_widgets(self) -> None:
         """Create the history view widgets."""
-        self.frame = self.create_themed_frame(self.parent)
-        self.frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.frame = self.create_card_frame(self.parent)
+        self.frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
 
         # Title
         title_frame = self.create_themed_frame(self.frame)
-        title_frame.pack(fill=tk.X, pady=(0, 10))
+        title_frame.pack(fill=tk.X, pady=(0, 16))
 
-        title_label = self.create_themed_label(
-            title_frame, self._("export_history"), style="Title.TLabel"
+        title_label = self.create_title_label(
+            title_frame, self._("export_history")
         )
-        title_label.pack(side=tk.LEFT, pady=5)
+        title_label.pack(side=tk.LEFT, pady=8)
         logging.debug(f"Created title label with text: {self._('export_history')}")
+
+        # Control buttons frame
+        control_buttons_frame = self.create_themed_frame(title_frame)
+        control_buttons_frame.pack(side=tk.RIGHT)
 
         # Add theme toggle button
         theme_button = self.create_themed_button(
-            title_frame,
+            control_buttons_frame,
             text=self._("dark_theme")
             if not self.theme_manager.is_dark_theme()
             else self._("light_theme"),
             command=self._toggle_theme,
         )
-        theme_button.pack(side=tk.RIGHT, padx=5)
+        theme_button.pack(side=tk.LEFT, padx=(0, 8))
         self.widgets["theme_button"] = theme_button
 
         # Add language toggle button
         lang_button = self.create_themed_button(
-            title_frame,
+            control_buttons_frame,
             text="English"
             if self.language_manager.get_current_language() == "vi"
             else "Tiếng Việt",
             command=self._toggle_language,
         )
-        lang_button.pack(side=tk.RIGHT, padx=5)
+        lang_button.pack(side=tk.LEFT)
         self.widgets["lang_button"] = lang_button
 
-        # Search and sort controls
-        control_frame = self.create_themed_frame(self.frame)
-        control_frame.pack(fill=tk.X, pady=(0, 10))
+        # Action buttons
+        action_buttons_frame = self.create_themed_frame(self.frame)
+        action_buttons_frame.pack(fill=tk.X, pady=(0, 16))
 
-        # Search
-        search_frame = self.create_themed_frame(control_frame)
-        search_frame.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        buttons = [
+            {"text": self._("new_export"), "command": self._on_new_export, "style": "Success.TButton"},
+            {"text": self._("delete_selected"), "command": self._on_delete_selected, "style": "Danger.TButton"},
+            {"text": self._("settings"), "command": self._on_settings, "style": "TButton"},
+        ]
+        self.create_button_group(action_buttons_frame, buttons)
 
-        search_label = self.create_themed_label(search_frame, self._("search"))
-        search_label.pack(side=tk.LEFT, padx=(0, 5))
+        # History list section
+        history_section = self.create_titled_section(self.frame, "")
+        history_section["frame"].pack(fill=tk.BOTH, expand=True)
+        
+        # Create treeview with modern styling
+        tree_frame = self.create_themed_frame(history_section["content"])
+        tree_frame.pack(fill=tk.BOTH, expand=True, pady=8)
 
-        search_entry = self.create_themed_entry(
-            search_frame, textvariable=self.search_var
-        )
-        search_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
-        search_entry.bind("<KeyRelease>", self._on_search_changed)
+        # Create treeview with scrollbars
+        tree_scroll_y = ttk.Scrollbar(tree_frame)
+        tree_scroll_y.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Sort
-        sort_frame = self.create_themed_frame(control_frame)
-        sort_frame.pack(side=tk.RIGHT)
-
-        sort_label = self.create_themed_label(sort_frame, self._("sort_by", "Sort by:"))
-        sort_label.pack(side=tk.LEFT, padx=(0, 5))
-
-        sort_combo = ttk.Combobox(
-            sort_frame,
-            textvariable=self.sort_var,
-            state="readonly",
-            width=12,
-            values=[
-                self._("last_run"),
-                self._("project_path"),
-                self._("created", "Created"),
-                self._("run_count", "Run Count"),
-            ],
-        )
-        sort_combo.pack(side=tk.LEFT, padx=(0, 5))
-        sort_combo.bind("<<ComboboxSelected>>", self._on_sort_changed)
-
-        # Sort order button
-        sort_order_button = self.create_themed_button(
-            sort_frame, text="↓", command=self._toggle_sort_order, width=2
-        )
-        sort_order_button.pack(side=tk.LEFT)
-        self.widgets["sort_order_button"] = sort_order_button
-
-        # Tree view for history items
-        tree_frame = self.create_themed_frame(self.frame)
-        tree_frame.pack(fill=tk.BOTH, expand=True)
+        tree_scroll_x = ttk.Scrollbar(tree_frame, orient=tk.HORIZONTAL)
+        tree_scroll_x.pack(side=tk.BOTTOM, fill=tk.X)
 
         self.tree = ttk.Treeview(
             tree_frame,
-            columns=("path", "format", "last_run", "count"),
-            show="headings",
-            selectmode="extended",
+            columns=("project_path", "last_run", "run_count", "created"),
+            show="tree headings",
+            yscrollcommand=tree_scroll_y.set,
+            xscrollcommand=tree_scroll_x.set,
         )
+        self.tree.pack(fill=tk.BOTH, expand=True)
 
-        # Configure columns
-        self.tree.heading("path", text=self._("project_path"))
-        self.tree.heading("format", text=self._("format", "Format"))
+        tree_scroll_y.config(command=self.tree.yview)
+        tree_scroll_x.config(command=self.tree.xview)
+
+        # Configure treeview columns
+        self.tree.heading("#0", text="")
+        self.tree.column("#0", width=0, stretch=tk.NO)
+
+        self.tree.heading("project_path", text=self._("project_path"))
+        self.tree.column("project_path", width=300, minwidth=200)
+
         self.tree.heading("last_run", text=self._("last_run"))
-        self.tree.heading("count", text=self._("run_count", "Runs"))
+        self.tree.column("last_run", width=150, minwidth=120)
 
-        # Set column widths and anchors
-        self.tree.column("path", width=350, anchor="w")
-        self.tree.column("format", width=80, anchor="center")
-        self.tree.column("last_run", width=150, anchor="center")
-        self.tree.column("count", width=50, anchor="center")
+        self.tree.heading("run_count", text=self._("run_count", "Run Count"))
+        self.tree.column("run_count", width=80, minwidth=60)
 
-        # Add scrollbars
-        vsb = ttk.Scrollbar(tree_frame, orient="vertical", command=self.tree.yview)
-        hsb = ttk.Scrollbar(tree_frame, orient="horizontal", command=self.tree.xview)
-        self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
+        self.tree.heading("created", text=self._("created", "Created"))
+        self.tree.column("created", width=150, minwidth=120)
 
-        # Place tree and scrollbars
-        self.tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        vsb.pack(side=tk.RIGHT, fill=tk.Y)
-        hsb.pack(side=tk.BOTTOM, fill=tk.X)
-
-        # Bind events
+        # Bind double-click event
         self.tree.bind("<Double-1>", self._on_item_double_click)
 
-        # Action buttons
-        button_frame = self.create_themed_frame(self.frame)
-        button_frame.pack(fill=tk.X, pady=(10, 0))
-
-        new_button = self.create_themed_button(
-            button_frame, text=self._("new_export"), command=self._on_new_export
-        )
-        new_button.pack(side=tk.LEFT, padx=(0, 5))
-        self.widgets["new_export_button"] = new_button
-        logging.debug(f"Created new export button with text: {self._('new_export')}")
-
-        delete_button = self.create_themed_button(
-            button_frame,
-            text=self._("delete_selected"),
-            command=self._on_delete_selected,
-            style="Danger.TButton",
-        )
-        delete_button.pack(side=tk.LEFT, padx=5)
-        self.widgets["delete_button"] = delete_button
-
-        settings_button = self.create_themed_button(
-            button_frame, text=self._("settings"), command=self._on_settings
-        )
-        settings_button.pack(side=tk.RIGHT, padx=5)
-        self.widgets["settings_button"] = settings_button
 
     def populate_tree(self, items: List[Dict[str, Any]]) -> None:
         """Populate the tree with history items."""
@@ -188,17 +142,29 @@ class HistoryView(BaseView):
             else:
                 last_run_str = self._("never", "Never")
 
-            # Get output format
-            output_format = item.get("output_format", "txt").upper()
-
             # Get run count
             run_count = item.get("run_count", 1)
+
+            # Get created date
+            created_ts = item.get("created", 0)
+            if created_ts:
+                try:
+                    created_str = item.get(
+                        "created_formatted",
+                        datetime.fromtimestamp(created_ts).strftime(
+                            "%Y-%m-%d %H:%M:%S"
+                        ),
+                    )
+                except Exception:
+                    created_str = self._("unknown", "Unknown")
+            else:
+                created_str = self._("unknown", "Unknown")
 
             # Insert into tree
             self.tree.insert(
                 "",
                 "end",
-                values=(path, output_format, last_run_str, run_count),
+                values=(path, last_run_str, run_count, created_str),
                 tags=(path,),
             )
 

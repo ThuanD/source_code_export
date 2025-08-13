@@ -30,182 +30,138 @@ class ExportView(BaseView):
         self.status_var = tk.StringVar(value="")
 
     def create_widgets(self) -> None:
-        """Create the export view widgets."""
+        """Create the export view widgets with a robust button layout."""
         self.frame = self.create_themed_frame(self.parent)
-        self.frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
 
-        # Title
-        title_frame = self.create_themed_frame(self.frame)
-        title_frame.pack(fill=tk.X, pady=(0, 10))
+        # Main content area
+        main_content_frame = self.create_themed_frame(self.frame)
+        main_content_frame.pack(fill=tk.BOTH, expand=True)
 
-        title_label = self.create_themed_label(
-            title_frame, self._("export_configuration"), style="Title.TLabel"
+        # Title section
+        title_frame = self.create_themed_frame(main_content_frame)
+        title_frame.pack(fill=tk.X, pady=(0, 16))
+        title_label = self.create_title_label(
+            title_frame, self._("export_configuration")
         )
-        title_label.pack(side=tk.LEFT, pady=5)
+        title_label.pack(side=tk.LEFT, pady=8)
 
-        # Main content in a notebook (tabbed interface)
-        notebook = ttk.Notebook(self.frame)
+        # Notebook for tabs
+        notebook = ttk.Notebook(main_content_frame)
         notebook.pack(fill=tk.BOTH, expand=True)
 
-        # Basic settings tab
         basic_tab = self.create_themed_frame(notebook)
-        notebook.add(basic_tab, text=self._("basic_settings", "Basic Settings"))
-
-        # Advanced settings tab
-        advanced_tab = self.create_themed_frame(notebook)
-        notebook.add(
-            advanced_tab, text=self._("advanced_settings", "Advanced Settings")
-        )
-
-        # Create the basic settings tab content
+        notebook.add(basic_tab, text=self._("basic_settings"))
         self._create_basic_settings_tab(basic_tab)
 
-        # Create the advanced settings tab content
+        advanced_tab = self.create_themed_frame(notebook)
+        notebook.add(advanced_tab, text=self._("advanced_settings"))
         self._create_advanced_settings_tab(advanced_tab)
 
+        # Separator before progress
+        ttk.Separator(self.frame, orient="horizontal").pack(fill='x', pady=10)
+
         # Progress section
-        progress_frame = self.create_themed_frame(self.frame)
-        progress_frame.pack(fill=tk.X, pady=10)
+        progress_container = self.create_themed_frame(self.frame)
+        progress_container.pack(fill=tk.X, pady=5, padx=5)
+        
+        progress_label = self.create_themed_label(progress_container, self._("export_progress"))
+        progress_label.pack(anchor="w")
 
-        progress_label = self.create_themed_label(
-            progress_frame, self._("export_progress")
+        self.progress_section = {}
+        self.progress_section["bar"] = ttk.Progressbar(
+            progress_container, orient="horizontal", mode="determinate", variable=self.progress_var
         )
-        progress_label.pack(anchor=tk.W, pady=(0, 5))
+        self.progress_section["bar"].pack(fill=tk.X, pady=(2, 0))
 
-        progress_bar = ttk.Progressbar(
-            progress_frame,
-            orient=tk.HORIZONTAL,
-            length=100,
-            mode="determinate",
-            variable=self.progress_var,
+        self.progress_section["status"] = self.create_caption_label(
+            progress_container, ""
         )
-        progress_bar.pack(fill=tk.X, pady=(0, 5))
+        self.progress_section["status"]["textvariable"] = self.status_var
+        self.progress_section["status"].pack(anchor="w")
 
-        status_label = self.create_themed_label(
-            progress_frame, "", textvariable=self.status_var
-        )
-        status_label.pack(anchor=tk.W)
+        # Separator before buttons
+        ttk.Separator(self.frame, orient="horizontal").pack(fill='x', pady=10)
+        
+        # Bottom button bar
+        bottom_bar = self.create_themed_frame(self.frame)
+        bottom_bar.pack(fill=tk.X, side=tk.BOTTOM, pady=(5,0))
 
-        # Action buttons
-        button_frame = self.create_themed_frame(self.frame)
-        button_frame.pack(fill=tk.X, pady=(10, 0))
+        # Left buttons
+        left_buttons_frame = self.create_themed_frame(bottom_bar)
+        left_buttons_frame.pack(side=tk.LEFT)
+        
+        self.widgets["back_button"] = self.create_themed_button(
+            left_buttons_frame, text=self._("back_to_list"), command=self._on_back)
+        self.widgets["back_button"].pack(side=tk.LEFT, padx=(0, 5))
 
-        back_button = self.create_themed_button(
-            button_frame, text=self._("back_to_list"), command=self._on_back
-        )
-        back_button.pack(side=tk.LEFT, padx=(0, 5))
+        self.widgets["delete_button"] = self.create_themed_button(
+            left_buttons_frame, text=self._("delete_config"), command=self._on_delete_config, style="Danger.TButton")
+        self.widgets["delete_button"].pack(side=tk.LEFT)
 
-        delete_button = self.create_themed_button(
-            button_frame,
-            text=self._("delete_config"),
-            command=self._on_delete_config,
-            style="Danger.TButton",
-        )
-        delete_button.pack(side=tk.LEFT, padx=5)
-
-        run_button = self.create_themed_button(
-            button_frame,
-            text=self._("run_export"),
-            command=self._on_run_export,
-            style="Success.TButton",
-        )
-        run_button.pack(side=tk.RIGHT, padx=5)
-        self.widgets["run_button"] = run_button
+        # Right buttons
+        right_buttons_frame = self.create_themed_frame(bottom_bar)
+        right_buttons_frame.pack(side=tk.RIGHT)
+        self.widgets["right_buttons_frame"] = right_buttons_frame
+        
+        self.widgets["run_button"] = self.create_themed_button(
+            right_buttons_frame, text=self._("run_export"), command=self._on_run_export, style="Success.TButton")
+        self.widgets["run_button"].pack()
 
     def _create_basic_settings_tab(self, parent: tk.Widget) -> None:
-        """Create the basic settings tab content."""
-        # Input folder
-        input_folder_frame = self.create_themed_frame(parent)
-        input_folder_frame.pack(fill=tk.X, pady=5)
+        """Create the basic settings tab content to match the desired UI."""
+        
+        # --- Input Folder ---
+        input_frame = self.create_themed_frame(parent)
+        input_frame.pack(fill=tk.X, padx=5, pady=(10, 5))
 
-        input_folder_label = self.create_themed_label(
-            input_folder_frame, self._("input_folder")
-        )
-        input_folder_label.pack(anchor=tk.W, pady=(0, 5))
+        input_label = self.create_themed_label(input_frame, self._("input_folder"))
+        input_label.pack(anchor="w")
 
-        input_folder_entry_frame = self.create_themed_frame(input_folder_frame)
-        input_folder_entry_frame.pack(fill=tk.X)
+        input_entry_frame = self.create_themed_frame(input_frame)
+        input_entry_frame.pack(fill=tk.X)
+        
+        self.widgets["input_entry"] = self.create_themed_entry(input_entry_frame, textvariable=self.input_folder_var)
+        self.widgets["input_entry"].pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        self.widgets["input_entry"].bind("<FocusOut>", self._update_output_filename)
 
-        input_folder_entry = self.create_themed_entry(
-            input_folder_entry_frame, textvariable=self.input_folder_var
-        )
-        input_folder_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
-        # Bind input folder change to update output file automatically
-        input_folder_entry.bind("<FocusOut>", self._update_output_filename)
+        self.widgets["browse_input_button"] = self.create_themed_button(
+            input_entry_frame, text=self._("browse"), command=self._browse_input_folder)
+        self.widgets["browse_input_button"].pack(side=tk.LEFT)
 
-        browse_input_button = self.create_themed_button(
-            input_folder_entry_frame,
-            text=self._("browse"),
-            command=self._browse_input_folder,
-        )
-        browse_input_button.pack(side=tk.RIGHT)
-        self._create_tooltip(browse_input_button, "select_folder_tooltip")
+        # --- Output File ---
+        output_frame = self.create_themed_frame(parent)
+        output_frame.pack(fill=tk.X, padx=5, pady=5)
 
-        # Output file
-        output_file_frame = self.create_themed_frame(parent)
-        output_file_frame.pack(fill=tk.X, pady=5)
+        output_label = self.create_themed_label(output_frame, self._("output_file"))
+        output_label.pack(anchor="w")
+        
+        output_entry_frame = self.create_themed_frame(output_frame)
+        output_entry_frame.pack(fill=tk.X)
 
-        output_file_label = self.create_themed_label(
-            output_file_frame, self._("output_file")
-        )
-        output_file_label.pack(anchor=tk.W, pady=(0, 5))
+        self.widgets["output_entry"] = self.create_themed_entry(output_entry_frame, textvariable=self.output_file_var)
+        self.widgets["output_entry"].pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
 
-        output_file_entry_frame = self.create_themed_frame(output_file_frame)
-        output_file_entry_frame.pack(fill=tk.X)
+        self.widgets["browse_output_button"] = self.create_themed_button(
+            output_entry_frame, text=self._("browse"), command=self._browse_output_file)
+        self.widgets["browse_output_button"].pack(side=tk.LEFT)
 
-        output_file_entry = self.create_themed_entry(
-            output_file_entry_frame, textvariable=self.output_file_var
-        )
-        output_file_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
-
-        browse_output_button = self.create_themed_button(
-            output_file_entry_frame,
-            text=self._("browse"),
-            command=self._browse_output_file,
-        )
-        browse_output_button.pack(side=tk.RIGHT)
-        self._create_tooltip(browse_output_button, "select_file_tooltip")
-
-        # Output format
+        # --- Output Format ---
         format_frame = self.create_themed_frame(parent)
-        format_frame.pack(fill=tk.X, pady=5)
-
+        format_frame.pack(fill=tk.X, padx=5, pady=(10, 0))
+        
         format_label = self.create_themed_label(format_frame, self._("output_format"))
-        format_label.pack(anchor=tk.W, pady=(0, 5))
-        self._create_tooltip(format_label, "output_format_tooltip")
-
+        format_label.pack(anchor="w")
+        
         format_options_frame = self.create_themed_frame(format_frame)
         format_options_frame.pack(fill=tk.X)
-
-        # Format radio buttons
+        
         format_options = [
-            (
-                "text_format",
-                "txt",
-                self._("text_format_tooltip", "Simple plain text format"),
-            ),
-            (
-                "markdown_format",
-                "md",
-                self._(
-                    "md_format_tooltip", "Markdown with code block syntax highlighting"
-                ),
-            ),
-            (
-                "html_format",
-                "html",
-                self._("html_format_tooltip", "HTML with full syntax highlighting"),
-            ),
-            (
-                "json_format",
-                "json",
-                self._(
-                    "json_format_tooltip", "Structured JSON format for programmatic use"
-                ),
-            ),
+            ("text_format", "txt"), ("markdown_format", "md"),
+            ("html_format", "html"), ("json_format", "json")
         ]
-
-        for text_key, value, tooltip in format_options:
+        
+        for text_key, value in format_options:
             rb = ttk.Radiobutton(
                 format_options_frame,
                 text=self._(text_key),
@@ -213,22 +169,19 @@ class ExportView(BaseView):
                 value=value,
                 command=self._update_output_file_extension,
             )
-            rb.pack(side=tk.LEFT, padx=(0, 10))
-            self._create_tooltip(rb, tooltip)
+            rb.pack(side=tk.LEFT, padx=(0, 15), pady=2)
 
-        # Include stats checkbox
-        stats_checkbox = ttk.Checkbutton(
-            parent, text=self._("include_stats"), variable=self.include_stats_var
-        )
-        stats_checkbox.pack(anchor=tk.W, pady=5)
-        self._create_tooltip(stats_checkbox, "include_stats_tooltip")
+        # --- Other Options (Checkboxes) ---
+        options_frame = self.create_themed_frame(parent)
+        options_frame.pack(fill=tk.X, padx=5, pady=(10, 5))
 
-        # Compare with previous export checkbox
-        compare_checkbox = ttk.Checkbutton(
-            parent, text=self._("compare_previous"), variable=self.compare_prev_var
-        )
-        compare_checkbox.pack(anchor=tk.W, pady=5)
-        self._create_tooltip(compare_checkbox, "compare_previous_tooltip")
+        self.widgets["stats_checkbox"] = ttk.Checkbutton(
+            options_frame, text=self._("include_stats"), variable=self.include_stats_var)
+        self.widgets["stats_checkbox"].pack(anchor="w", pady=2)
+
+        self.widgets["compare_checkbox"] = ttk.Checkbutton(
+            options_frame, text=self._("compare_previous"), variable=self.compare_prev_var)
+        self.widgets["compare_checkbox"].pack(anchor="w", pady=2)
 
     def _create_advanced_settings_tab(self, parent: tk.Widget) -> None:
         """Create the advanced settings tab content."""
@@ -466,12 +419,12 @@ class ExportView(BaseView):
         """Update progress bar and status."""
         self.progress_var.set(progress * 100)
         self.status_var.set(status)
-
+        
         # Ensure UI updates
-        self.frame.update()
+        self.frame.update_idletasks()
 
-        # Hiển thị nút mở file nếu export hoàn tất
-        if progress >= 1.0 and status == self._("export_complete"):
+        # Show the open file button if the export is complete
+        if progress >= 1.0:
             self._show_open_file_button()
         else:
             self._hide_open_file_button()
@@ -505,45 +458,43 @@ class ExportView(BaseView):
 
         # Re-register callbacks
         if hasattr(self, "_on_back_callback"):
-            self.widgets["back_button"].configure(command=self._on_back)
+            # Find back button in button group
+            button_frame = self.frame.winfo_children()[-1]  # Last child is button frame
+            back_button = button_frame.winfo_children()[0]  # First button is back button
+            back_button.configure(command=self._on_back)
         if hasattr(self, "_on_delete_config_callback"):
-            self.widgets["delete_button"].configure(command=self._on_delete_config)
+            # Find delete button in button group
+            button_frame = self.frame.winfo_children()[-1]  # Last child is button frame
+            delete_button = button_frame.winfo_children()[1]  # Second button is delete button
+            delete_button.configure(command=self._on_delete_config)
         if hasattr(self, "_on_run_export_callback"):
-            self.widgets["run_button"].configure(command=self._on_run_export)
+            # Find run button in button group
+            button_frame = self.frame.winfo_children()[-1]  # Last child is button frame
+            run_button = button_frame.winfo_children()[-1]  # Last button is run button
+            run_button.configure(command=self._on_run_export)
 
     def _show_open_file_button(self) -> None:
-        """Hiển thị nút mở file output."""
+        """Show open file button."""
         if "open_file_button" not in self.widgets:
             output_file = self.output_file_var.get().strip()
             if output_file:
-                # Tạo frame cho nút mở file nếu chưa có
-                if "open_file_frame" not in self.widgets:
-                    open_file_frame = self.create_themed_frame(self.frame)
-                    open_file_frame.pack(fill=tk.X, pady=(5, 0))
-                    self.widgets["open_file_frame"] = open_file_frame
-
-                # Tạo nút mở file
-                open_file_button = self.create_themed_button(
-                    self.widgets["open_file_frame"],
-                    text=self._("open_output"),
+                open_button = self.create_themed_button(
+                    self.widgets["right_buttons_frame"],
+                    text=self._("open_output_file", "Open Output"),
                     command=lambda: self._open_output_file(output_file),
-                    style="Success.TButton",
+                    style="TButton"
                 )
-                open_file_button.pack(side=tk.RIGHT, padx=5)
-                self.widgets["open_file_button"] = open_file_button
+                open_button.pack(pady=(4, 0))
+                self.widgets["open_file_button"] = open_button
 
     def _hide_open_file_button(self) -> None:
-        """Ẩn nút mở file output."""
+        """Hide and cancel open file button."""
         if "open_file_button" in self.widgets:
             self.widgets["open_file_button"].destroy()
             del self.widgets["open_file_button"]
 
-        if "open_file_frame" in self.widgets:
-            self.widgets["open_file_frame"].destroy()
-            del self.widgets["open_file_frame"]
-
     def _open_output_file(self, file_path: str) -> None:
-        """Mở file output bằng ứng dụng mặc định."""
+        """Open ouput file using default app."""
         try:
             import webbrowser
 

@@ -11,32 +11,54 @@ class ThemeManager:
 
     # Light theme colors
     LIGHT_THEME = {
-        "bg_primary": "#FFFFFF",  # Primary background
-        "bg_secondary": "#F0F0F0",  # Secondary background (for panels, etc)
-        "bg_tertiary": "#E0E0E0",  # Tertiary background (for headers, etc)
-        "fg_primary": "#000000",  # Primary text color
-        "fg_secondary": "#555555",  # Secondary text color
-        "accent": "#0066CC",  # Accent color for buttons, links, etc
-        "accent_hover": "#0055AA",  # Hover state for accent color
-        "success": "#4CAF50",  # Success/positive color
-        "warning": "#FFC107",  # Warning color
-        "error": "#F44336",  # Error/negative color
-        "border": "#CCCCCC",  # Border color
+        "bg_primary": "#FAFBFC",  # Very light blue-gray
+        "bg_secondary": "#F6F8FA",  # Light gray-blue
+        "bg_tertiary": "#E1ECF4",  # Light blue
+        "bg_card": "#FFFFFF",  # Pure white for cards
+        "fg_primary": "#24292F",  # Dark gray for primary text
+        "fg_secondary": "#656D76",  # Medium gray for secondary text
+        "fg_muted": "#8C959F",  # Muted gray for disabled text
+        "accent": "#0969DA",  # GitHub blue
+        "accent_hover": "#0858B9",  # Darker blue on hover
+        "accent_light": "#DDF4FF",  # Very light blue for highlights
+        "success": "#2DA44E",  # GitHub green
+        "success_hover": "#2C974B",  # Darker green
+        "success_light": "#DDF4E8",  # Light green background
+        "warning": "#D97706",  # Orange
+        "warning_hover": "#B45309",  # Darker orange
+        "warning_light": "#FFF8E6",  # Light orange background
+        "error": "#CF222E",  # GitHub red
+        "error_hover": "#A40E26",  # Darker red
+        "error_light": "#FFEBEE",  # Light red background
+        "border": "#D0D7DE",  # Light gray border
+        "border_focus": "#0969DA",  # Blue border when focused
+        "shadow": "#00000010",  # Subtle shadow
     }
 
-    # Dark theme colors
+    # Modern Dark theme with beautiful palette
     DARK_THEME = {
-        "bg_primary": "#1E1E1E",  # Primary background
-        "bg_secondary": "#252525",  # Secondary background (for panels, etc)
-        "bg_tertiary": "#333333",  # Tertiary background (for headers, etc)
-        "fg_primary": "#FFFFFF",  # Primary text color
-        "fg_secondary": "#AAAAAA",  # Secondary text color
-        "accent": "#58A6FF",  # Accent color for buttons, links, etc
-        "accent_hover": "#79B8FF",  # Hover state for accent color
-        "success": "#56D364",  # Success/positive color
-        "warning": "#E3B341",  # Warning color
-        "error": "#F85149",  # Error/negative color
-        "border": "#555555",  # Border color
+        "bg_primary": "#0D1117",  # GitHub dark background
+        "bg_secondary": "#161B22",  # Slightly lighter dark
+        "bg_tertiary": "#21262D",  # Card background
+        "bg_card": "#161B22",  # Card background
+        "fg_primary": "#F0F6FC",  # Light text
+        "fg_secondary": "#8B949E",  # Secondary text
+        "fg_muted": "#6E7681",  # Muted text
+        "accent": "#58A6FF",  # GitHub blue
+        "accent_hover": "#79B8FF",  # Lighter blue on hover
+        "accent_light": "#1F6FEB",  # Dark blue for highlights
+        "success": "#56D364",  # GitHub green
+        "success_hover": "#7C3AED",  # Purple on hover for variety
+        "success_light": "#0C5323",  # Dark green background
+        "warning": "#E3B341",  # Yellow
+        "warning_hover": "#F59E0B",  # Orange on hover
+        "warning_light": "#3D2C0E",  # Dark yellow background
+        "error": "#F85149",  # GitHub red
+        "error_hover": "#FF6B6B",  # Lighter red on hover
+        "error_light": "#3D1F1F",  # Dark red background
+        "border": "#30363D",  # Dark border
+        "border_focus": "#58A6FF",  # Blue border when focused
+        "shadow": "#00000040",  # Darker shadow
     }
 
     def __init__(self, app_data_dir: Path):
@@ -120,12 +142,12 @@ class ThemeManager:
                 logging.error(f"Error in theme change callback: {e}")
 
     def apply_theme_to_ttk(self) -> None:
-        """Apply the current theme to ttk widgets."""
+        """Apply the current theme to ttk widgets with modern styling."""
         style = ttk.Style()
 
         colors = self.get_current_theme_colors()
 
-        # Configure ttk theme
+        # Configure ttk theme with modern appearance
         style.theme_use("clam")  # Use clam as base theme
 
         # Configure common elements
@@ -133,16 +155,25 @@ class ThemeManager:
             ".",
             background=colors["bg_primary"],
             foreground=colors["fg_primary"],
-            fieldbackground=colors["bg_primary"],
+            fieldbackground=colors["bg_card"],
             troughcolor=colors["bg_tertiary"],
             focuscolor=colors["accent"],
             selectbackground=colors["accent"],
-            selectforeground=colors["bg_primary"],
+            selectforeground=colors["bg_card"],
+            bordercolor=colors["border"],
+            lightcolor=colors["border"],
+            darkcolor=colors["border"],
         )
 
-        # Configure TButton
+        # Modern TButton with rounded corners and hover effects
         style.configure(
-            "TButton", background=colors["accent"], foreground="white", padding=(10, 5)
+            "TButton",
+            background=colors["accent"],
+            foreground="white",
+            padding=(16, 8),
+            relief="flat",
+            borderwidth=0,
+            font=("Segoe UI", 10, "normal"),
         )
         style.map(
             "TButton",
@@ -150,74 +181,222 @@ class ThemeManager:
                 ("active", colors["accent_hover"]),
                 ("disabled", colors["bg_tertiary"]),
             ],
-            foreground=[("disabled", colors["fg_secondary"])],
+            foreground=[("disabled", colors["fg_muted"])],
+            relief=[("pressed", "sunken"), ("active", "raised")],
         )
 
-        # Configure special buttons
-        style.configure("Success.TButton", background=colors["success"])
+        # Success button style
+        style.configure(
+            "Success.TButton",
+            background=colors["success"],
+            foreground="white",
+            padding=(16, 8),
+            relief="flat",
+            borderwidth=0,
+            font=("Segoe UI", 10, "normal"),
+        )
         style.map(
             "Success.TButton",
-            background=[("active", "#45a049")],  # Darker green on hover
+            background=[
+                ("active", colors["success_hover"]),
+                ("disabled", colors["bg_tertiary"]),
+            ],
+            foreground=[("disabled", colors["fg_muted"])],
         )
 
-        style.configure("Danger.TButton", background=colors["error"])
+        # Danger button style
+        style.configure(
+            "Danger.TButton",
+            background=colors["error"],
+            foreground="white",
+            padding=(16, 8),
+            relief="flat",
+            borderwidth=0,
+            font=("Segoe UI", 10, "normal"),
+        )
         style.map(
             "Danger.TButton",
-            background=[("active", "#d32f2f")],  # Darker red on hover
+            background=[
+                ("active", colors["error_hover"]),
+                ("disabled", colors["bg_tertiary"]),
+            ],
+            foreground=[("disabled", colors["fg_muted"])],
         )
 
-        # Configure TFrame
+        # Warning button style
+        style.configure(
+            "Warning.TButton",
+            background=colors["warning"],
+            foreground="white",
+            padding=(16, 8),
+            relief="flat",
+            borderwidth=0,
+            font=("Segoe UI", 10, "normal"),
+        )
+        style.map(
+            "Warning.TButton",
+            background=[
+                ("active", colors["warning_hover"]),
+                ("disabled", colors["bg_tertiary"]),
+            ],
+            foreground=[("disabled", colors["fg_muted"])],
+        )
+
+        # Modern TFrame styles
         style.configure("TFrame", background=colors["bg_primary"])
         style.configure("Secondary.TFrame", background=colors["bg_secondary"])
+        style.configure("Card.TFrame", background=colors["bg_card"])
         style.configure("Header.TFrame", background=colors["bg_tertiary"])
 
-        # Configure TLabel
+        # Modern TLabel styles
         style.configure("TLabel", background=colors["bg_primary"])
         style.configure(
             "Header.TLabel",
-            font=("Arial", 14, "bold"),
+            font=("Segoe UI", 14, "bold"),
             background=colors["bg_tertiary"],
             foreground=colors["accent"],
+            padding=(8, 4),
         )
         style.configure(
             "Title.TLabel",
-            font=("Arial", 16, "bold"),
+            font=("Segoe UI", 18, "bold"),
             background=colors["bg_primary"],
             foreground=colors["fg_primary"],
+            padding=(0, 8),
+        )
+        style.configure(
+            "Subtitle.TLabel",
+            font=("Segoe UI", 12, "normal"),
+            background=colors["bg_primary"],
+            foreground=colors["fg_secondary"],
+            padding=(0, 4),
+        )
+        style.configure(
+            "Caption.TLabel",
+            font=("Segoe UI", 9, "normal"),
+            background=colors["bg_primary"],
+            foreground=colors["fg_muted"],
+            padding=(0, 2),
         )
 
-        # Configure TEntry
+        # Modern TEntry with focus effects
         style.configure(
             "TEntry",
-            fieldbackground=colors["bg_primary"],
+            fieldbackground=colors["bg_card"],
             foreground=colors["fg_primary"],
             bordercolor=colors["border"],
+            focuscolor=colors["border_focus"],
+            padding=(8, 6),
+            relief="solid",
+            borderwidth=1,
+        )
+        style.map(
+            "TEntry",
+            bordercolor=[
+                ("focus", colors["border_focus"]),
+                ("active", colors["accent"]),
+            ],
         )
 
-        # Configure Treeview
+        # Modern Treeview
         style.configure(
             "Treeview",
-            background=colors["bg_primary"],
-            fieldbackground=colors["bg_primary"],
+            background=colors["bg_card"],
+            fieldbackground=colors["bg_card"],
             foreground=colors["fg_primary"],
+            bordercolor=colors["border"],
+            relief="solid",
+            borderwidth=1,
         )
         style.configure(
             "Treeview.Heading",
             background=colors["bg_tertiary"],
             foreground=colors["fg_primary"],
-            font=("Arial", 10, "bold"),
+            font=("Segoe UI", 10, "bold"),
+            relief="flat",
+            borderwidth=0,
         )
         style.map(
             "Treeview",
             background=[("selected", colors["accent"])],
             foreground=[("selected", "white")],
         )
+        style.map(
+            "Treeview.Heading",
+            background=[("active", colors["accent_light"])],
+        )
 
-        # Configure TProgressbar
+        # Modern TProgressbar
         style.configure(
             "TProgressbar",
             background=colors["accent"],
             troughcolor=colors["bg_tertiary"],
+            bordercolor=colors["border"],
+            lightcolor=colors["accent"],
+            darkcolor=colors["accent"],
+            relief="flat",
+            borderwidth=0,
+        )
+
+        # Modern TNotebook
+        style.configure(
+            "TNotebook",
+            background=colors["bg_primary"],
+            bordercolor=colors["border"],
+            tabmargins=[2, 5, 2, 0],
+        )
+        style.configure(
+            "TNotebook.Tab",
+            background=colors["bg_secondary"],
+            foreground=colors["fg_secondary"],
+            padding=(12, 6),
+            font=("Segoe UI", 10, "normal"),
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[
+                ("selected", colors["bg_card"]),
+                ("active", colors["accent_light"]),
+            ],
+            foreground=[
+                ("selected", colors["fg_primary"]),
+                ("active", colors["accent"]),
+            ],
+        )
+
+        # Modern TCheckbutton
+        style.configure(
+            "TCheckbutton",
+            background=colors["bg_primary"],
+            foreground=colors["fg_primary"],
+            font=("Segoe UI", 10, "normal"),
+        )
+
+        # Modern TRadiobutton
+        style.configure(
+            "TRadiobutton",
+            background=colors["bg_primary"],
+            foreground=colors["fg_primary"],
+            font=("Segoe UI", 10, "normal"),
+        )
+
+        # Modern TCombobox
+        style.configure(
+            "TCombobox",
+            background=colors["bg_card"],
+            foreground=colors["fg_primary"],
+            bordercolor=colors["border"],
+            focuscolor=colors["border_focus"],
+            padding=(8, 6),
+            relief="solid",
+            borderwidth=1,
+        )
+        style.map(
+            "TCombobox",
+            bordercolor=[
+                ("focus", colors["border_focus"]),
+                ("active", colors["accent"]),
+            ],
         )
 
     def apply_theme_to_widget(self, widget: tk.Widget) -> None:
@@ -232,35 +411,51 @@ class ThemeManager:
                     foreground="white",
                     activebackground=colors["accent_hover"],
                     activeforeground="white",
+                    relief=tk.FLAT,
+                    borderwidth=0,
+                    font=("Segoe UI", 10, "normal"),
+                    padx=16,
+                    pady=8,
                 )
             elif isinstance(widget, (tk.Label, tk.LabelFrame)):
                 widget.configure(
-                    background=colors["bg_primary"], foreground=colors["fg_primary"]
+                    background=colors["bg_primary"], 
+                    foreground=colors["fg_primary"],
+                    font=("Segoe UI", 10, "normal"),
                 )
             elif isinstance(widget, tk.Entry):
                 widget.configure(
-                    background=colors["bg_primary"],
+                    background=colors["bg_card"],
                     foreground=colors["fg_primary"],
-                    insertbackground=colors["fg_primary"],  # Cursor color
+                    insertbackground=colors["fg_primary"],
                     selectbackground=colors["accent"],
                     selectforeground="white",
+                    relief=tk.SOLID,
+                    borderwidth=1,
+                    font=("Segoe UI", 10, "normal"),
                 )
             elif isinstance(widget, tk.Text):
                 widget.configure(
-                    background=colors["bg_primary"],
+                    background=colors["bg_card"],
                     foreground=colors["fg_primary"],
-                    insertbackground=colors["fg_primary"],  # Cursor color
+                    insertbackground=colors["fg_primary"],
                     selectbackground=colors["accent"],
                     selectforeground="white",
+                    relief=tk.SOLID,
+                    borderwidth=1,
+                    font=("Segoe UI", 10, "normal"),
                 )
             elif isinstance(widget, tk.Frame):
                 widget.configure(background=colors["bg_primary"])
             elif isinstance(widget, tk.Listbox):
                 widget.configure(
-                    background=colors["bg_primary"],
+                    background=colors["bg_card"],
                     foreground=colors["fg_primary"],
                     selectbackground=colors["accent"],
                     selectforeground="white",
+                    relief=tk.SOLID,
+                    borderwidth=1,
+                    font=("Segoe UI", 10, "normal"),
                 )
             elif isinstance(widget, (tk.Radiobutton, tk.Checkbutton)):
                 widget.configure(
@@ -269,13 +464,17 @@ class ThemeManager:
                     activebackground=colors["bg_primary"],
                     activeforeground=colors["fg_primary"],
                     selectcolor=colors["bg_secondary"],
+                    font=("Segoe UI", 10, "normal"),
                 )
             elif isinstance(widget, tk.Menu):
                 widget.configure(
-                    background=colors["bg_primary"],
+                    background=colors["bg_card"],
                     foreground=colors["fg_primary"],
                     activebackground=colors["accent"],
                     activeforeground="white",
+                    relief=tk.SOLID,
+                    borderwidth=1,
+                    font=("Segoe UI", 10, "normal"),
                 )
         except Exception as e:
             # Log the error but don't crash the application
@@ -303,9 +502,9 @@ class ThemeManager:
                 activeforeground="white",
                 relief=tk.FLAT,
                 borderwidth=0,
-                padx=10,
-                pady=5,
-                font=("Arial", 10),
+                padx=16,
+                pady=8,
+                font=("Segoe UI", 10, "normal"),
             )
 
         if "label" in kwargs:
@@ -314,19 +513,20 @@ class ThemeManager:
                 text=kwargs.get("label_text", "Label"),
                 background=colors["bg_primary"],
                 foreground=colors["fg_primary"],
-                font=("Arial", 10),
+                font=("Segoe UI", 10, "normal"),
             )
 
         if "entry" in kwargs:
             widgets["entry"] = tk.Entry(
                 parent,
-                background=colors["bg_primary"],
+                background=colors["bg_card"],
                 foreground=colors["fg_primary"],
                 insertbackground=colors["fg_primary"],
                 selectbackground=colors["accent"],
                 selectforeground="white",
                 relief=tk.SOLID,
                 borderwidth=1,
+                font=("Segoe UI", 10, "normal"),
             )
 
         if "frame" in kwargs:
