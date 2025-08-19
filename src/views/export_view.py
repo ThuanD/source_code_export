@@ -22,8 +22,6 @@ class ExportView(BaseView):
         self.exclude_extensions_var = tk.StringVar()
         self.output_format_var = tk.StringVar(value="txt")
         self.exclude_size_var = tk.StringVar(value="0")
-        self.include_stats_var = tk.BooleanVar(value=True)
-        self.compare_prev_var = tk.BooleanVar(value=False)
 
         # Progress tracking
         self.progress_var = tk.DoubleVar(value=0)
@@ -33,22 +31,56 @@ class ExportView(BaseView):
         """Create the export view widgets with a robust button layout."""
         self.frame = self.create_themed_frame(self.parent)
         self.frame.pack(fill=tk.BOTH, expand=True, padx=16, pady=16)
+        self.frame.grid_rowconfigure(0, weight=1)
+        self.frame.grid_columnconfigure(0, weight=1)
 
-        # Main content area
-        main_content_frame = self.create_themed_frame(self.frame)
-        main_content_frame.pack(fill=tk.BOTH, expand=True)
+        content_container = self.create_themed_frame(self.frame)
+        content_container.grid(row=0, column=0, sticky="nsew")
+        content_container.grid_rowconfigure(0, weight=1)
+        content_container.grid_columnconfigure(0, weight=1)
 
-        # Title section
-        title_frame = self.create_themed_frame(main_content_frame)
-        title_frame.pack(fill=tk.X, pady=(0, 16))
+        colors = self.theme_manager.get_current_theme_colors()
+        canvas = tk.Canvas(
+            content_container, highlightthickness=0, background=colors["bg_primary"]
+        )
+        canvas.grid(row=0, column=0, sticky="nsew")
+
+        scrollbar = ttk.Scrollbar(
+            content_container, orient="vertical", command=canvas.yview
+        )
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        scrollable_frame = self.create_themed_frame(canvas)
+        scrollable_frame.columnconfigure(0, weight=1)
+
+        scrollable_frame.grid_rowconfigure(1, weight=1)
+
+        frame_id = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+        def update_scrollregion(event):
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        scrollable_frame.bind("<Configure>", update_scrollregion)
+
+        def update_frame_width(event):
+            canvas.itemconfig(frame_id, width=event.width)
+
+        canvas.bind("<Configure>", update_frame_width)
+
+        current_row = 0
+
+        title_frame = self.create_themed_frame(scrollable_frame)
+        title_frame.grid(row=current_row, column=0, sticky="ew", pady=(0, 16))
+        current_row += 1
         title_label = self.create_title_label(
             title_frame, self._("export_configuration")
         )
         title_label.pack(side=tk.LEFT, pady=8)
 
-        # Notebook for tabs
-        notebook = ttk.Notebook(main_content_frame)
-        notebook.pack(fill=tk.BOTH, expand=True)
+        notebook = ttk.Notebook(scrollable_frame)
+        notebook.grid(row=current_row, column=0, sticky="nsew")
+        current_row += 1
 
         basic_tab = self.create_themed_frame(notebook)
         notebook.add(basic_tab, text=self._("basic_settings"))
@@ -58,19 +90,26 @@ class ExportView(BaseView):
         notebook.add(advanced_tab, text=self._("advanced_settings"))
         self._create_advanced_settings_tab(advanced_tab)
 
-        # Separator before progress
-        ttk.Separator(self.frame, orient="horizontal").pack(fill='x', pady=10)
+        ttk.Separator(scrollable_frame, orient="horizontal").grid(
+            row=current_row, column=0, sticky="ew", pady=10
+        )
+        current_row += 1
 
-        # Progress section
-        progress_container = self.create_themed_frame(self.frame)
-        progress_container.pack(fill=tk.X, pady=5, padx=5)
-        
-        progress_label = self.create_themed_label(progress_container, self._("export_progress"))
+        progress_container = self.create_themed_frame(scrollable_frame)
+        progress_container.grid(row=current_row, column=0, sticky="ew", padx=5)
+        current_row += 1
+
+        progress_label = self.create_themed_label(
+            progress_container, self._("export_progress")
+        )
         progress_label.pack(anchor="w")
 
         self.progress_section = {}
         self.progress_section["bar"] = ttk.Progressbar(
-            progress_container, orient="horizontal", mode="determinate", variable=self.progress_var
+            progress_container,
+            orient="horizontal",
+            mode="determinate",
+            variable=self.progress_var,
         )
         self.progress_section["bar"].pack(fill=tk.X, pady=(2, 0))
 
@@ -80,37 +119,41 @@ class ExportView(BaseView):
         self.progress_section["status"]["textvariable"] = self.status_var
         self.progress_section["status"].pack(anchor="w")
 
-        # Separator before buttons
-        ttk.Separator(self.frame, orient="horizontal").pack(fill='x', pady=10)
-        
-        # Bottom button bar
         bottom_bar = self.create_themed_frame(self.frame)
-        bottom_bar.pack(fill=tk.X, side=tk.BOTTOM, pady=(5,0))
+        bottom_bar.grid(row=1, column=0, sticky="ew", pady=(10, 0))
+        bottom_bar.grid_columnconfigure(1, weight=1)
 
-        # Left buttons
         left_buttons_frame = self.create_themed_frame(bottom_bar)
-        left_buttons_frame.pack(side=tk.LEFT)
-        
+        left_buttons_frame.grid(row=0, column=0, sticky="w")
+
         self.widgets["back_button"] = self.create_themed_button(
-            left_buttons_frame, text=self._("back_to_list"), command=self._on_back)
+            left_buttons_frame, text=self._("back_to_list"), command=self._on_back
+        )
         self.widgets["back_button"].pack(side=tk.LEFT, padx=(0, 5))
 
         self.widgets["delete_button"] = self.create_themed_button(
-            left_buttons_frame, text=self._("delete_config"), command=self._on_delete_config, style="Danger.TButton")
+            left_buttons_frame,
+            text=self._("delete_config"),
+            command=self._on_delete_config,
+            style="Danger.TButton",
+        )
         self.widgets["delete_button"].pack(side=tk.LEFT)
 
-        # Right buttons
         right_buttons_frame = self.create_themed_frame(bottom_bar)
-        right_buttons_frame.pack(side=tk.RIGHT)
+        right_buttons_frame.grid(row=0, column=2, sticky="e")
         self.widgets["right_buttons_frame"] = right_buttons_frame
-        
+
         self.widgets["run_button"] = self.create_themed_button(
-            right_buttons_frame, text=self._("run_export"), command=self._on_run_export, style="Success.TButton")
+            right_buttons_frame,
+            text=self._("run_export"),
+            command=self._on_run_export,
+            style="Success.TButton",
+        )
         self.widgets["run_button"].pack()
 
     def _create_basic_settings_tab(self, parent: tk.Widget) -> None:
         """Create the basic settings tab content to match the desired UI."""
-        
+
         # --- Input Folder ---
         input_frame = self.create_themed_frame(parent)
         input_frame.pack(fill=tk.X, padx=5, pady=(10, 5))
@@ -120,13 +163,18 @@ class ExportView(BaseView):
 
         input_entry_frame = self.create_themed_frame(input_frame)
         input_entry_frame.pack(fill=tk.X)
-        
-        self.widgets["input_entry"] = self.create_themed_entry(input_entry_frame, textvariable=self.input_folder_var)
-        self.widgets["input_entry"].pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+
+        self.widgets["input_entry"] = self.create_themed_entry(
+            input_entry_frame, textvariable=self.input_folder_var
+        )
+        self.widgets["input_entry"].pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5)
+        )
         self.widgets["input_entry"].bind("<FocusOut>", self._update_output_filename)
 
         self.widgets["browse_input_button"] = self.create_themed_button(
-            input_entry_frame, text=self._("browse"), command=self._browse_input_folder)
+            input_entry_frame, text=self._("browse"), command=self._browse_input_folder
+        )
         self.widgets["browse_input_button"].pack(side=tk.LEFT)
 
         # --- Output File ---
@@ -135,32 +183,39 @@ class ExportView(BaseView):
 
         output_label = self.create_themed_label(output_frame, self._("output_file"))
         output_label.pack(anchor="w")
-        
+
         output_entry_frame = self.create_themed_frame(output_frame)
         output_entry_frame.pack(fill=tk.X)
 
-        self.widgets["output_entry"] = self.create_themed_entry(output_entry_frame, textvariable=self.output_file_var)
-        self.widgets["output_entry"].pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        self.widgets["output_entry"] = self.create_themed_entry(
+            output_entry_frame, textvariable=self.output_file_var
+        )
+        self.widgets["output_entry"].pack(
+            side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5)
+        )
 
         self.widgets["browse_output_button"] = self.create_themed_button(
-            output_entry_frame, text=self._("browse"), command=self._browse_output_file)
+            output_entry_frame, text=self._("browse"), command=self._browse_output_file
+        )
         self.widgets["browse_output_button"].pack(side=tk.LEFT)
 
         # --- Output Format ---
         format_frame = self.create_themed_frame(parent)
         format_frame.pack(fill=tk.X, padx=5, pady=(10, 0))
-        
+
         format_label = self.create_themed_label(format_frame, self._("output_format"))
         format_label.pack(anchor="w")
-        
+
         format_options_frame = self.create_themed_frame(format_frame)
         format_options_frame.pack(fill=tk.X)
-        
+
         format_options = [
-            ("text_format", "txt"), ("markdown_format", "md"),
-            ("html_format", "html"), ("json_format", "json")
+            ("text_format", "txt"),
+            ("markdown_format", "md"),
+            ("html_format", "html"),
+            ("json_format", "json"),
         ]
-        
+
         for text_key, value in format_options:
             rb = ttk.Radiobutton(
                 format_options_frame,
@@ -174,14 +229,6 @@ class ExportView(BaseView):
         # --- Other Options (Checkboxes) ---
         options_frame = self.create_themed_frame(parent)
         options_frame.pack(fill=tk.X, padx=5, pady=(10, 5))
-
-        self.widgets["stats_checkbox"] = ttk.Checkbutton(
-            options_frame, text=self._("include_stats"), variable=self.include_stats_var)
-        self.widgets["stats_checkbox"].pack(anchor="w", pady=2)
-
-        self.widgets["compare_checkbox"] = ttk.Checkbutton(
-            options_frame, text=self._("compare_previous"), variable=self.compare_prev_var)
-        self.widgets["compare_checkbox"].pack(anchor="w", pady=2)
 
     def _create_advanced_settings_tab(self, parent: tk.Widget) -> None:
         """Create the advanced settings tab content."""
@@ -316,8 +363,6 @@ class ExportView(BaseView):
         self.exclude_extensions_var.set(" ".join(config.get("exclude_extensions", [])))
         self.output_format_var.set(config.get("output_format", "txt"))
         self.exclude_size_var.set(str(config.get("exclude_size_above", 0)))
-        self.include_stats_var.set(config.get("include_stats", True))
-        self.compare_prev_var.set(config.get("compare_previous", False))
 
     def get_values(self) -> Dict[str, Any]:
         """Get form values as a configuration dictionary."""
@@ -344,8 +389,6 @@ class ExportView(BaseView):
             "exclude_extensions": exclude_extensions,
             "output_format": self.output_format_var.get(),
             "exclude_size_above": exclude_size,
-            "include_stats": self.include_stats_var.get(),
-            "compare_previous": self.compare_prev_var.get(),
         }
 
     def validate(self) -> bool:
@@ -419,7 +462,7 @@ class ExportView(BaseView):
         """Update progress bar and status."""
         self.progress_var.set(progress * 100)
         self.status_var.set(status)
-        
+
         # Ensure UI updates
         self.frame.update_idletasks()
 
@@ -460,12 +503,16 @@ class ExportView(BaseView):
         if hasattr(self, "_on_back_callback"):
             # Find back button in button group
             button_frame = self.frame.winfo_children()[-1]  # Last child is button frame
-            back_button = button_frame.winfo_children()[0]  # First button is back button
+            back_button = button_frame.winfo_children()[
+                0
+            ]  # First button is back button
             back_button.configure(command=self._on_back)
         if hasattr(self, "_on_delete_config_callback"):
             # Find delete button in button group
             button_frame = self.frame.winfo_children()[-1]  # Last child is button frame
-            delete_button = button_frame.winfo_children()[1]  # Second button is delete button
+            delete_button = button_frame.winfo_children()[
+                1
+            ]  # Second button is delete button
             delete_button.configure(command=self._on_delete_config)
         if hasattr(self, "_on_run_export_callback"):
             # Find run button in button group
@@ -482,7 +529,7 @@ class ExportView(BaseView):
                     self.widgets["right_buttons_frame"],
                     text=self._("open_output_file", "Open Output"),
                     command=lambda: self._open_output_file(output_file),
-                    style="TButton"
+                    style="TButton",
                 )
                 open_button.pack(pady=(4, 0))
                 self.widgets["open_file_button"] = open_button

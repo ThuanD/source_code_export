@@ -35,6 +35,14 @@ class SourceCodeExporter:
             ".DS_Store",
             "source_code_export.txt",
         }
+        gitignore_path = self.root_path / ".gitignore"
+        if gitignore_path.exists():
+            with gitignore_path.open("r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#"):
+                        first_part = line.split("/")[0]
+                        self.default_excludes.add(first_part)
 
         # Statistics tracking
         self.stats = {

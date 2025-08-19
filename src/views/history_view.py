@@ -26,9 +26,7 @@ class HistoryView(BaseView):
         title_frame = self.create_themed_frame(self.frame)
         title_frame.pack(fill=tk.X, pady=(0, 16))
 
-        title_label = self.create_title_label(
-            title_frame, self._("export_history")
-        )
+        title_label = self.create_title_label(title_frame, self._("export_history"))
         title_label.pack(side=tk.LEFT, pady=8)
         logging.debug(f"Created title label with text: {self._('export_history')}")
 
@@ -63,16 +61,28 @@ class HistoryView(BaseView):
         action_buttons_frame.pack(fill=tk.X, pady=(0, 16))
 
         buttons = [
-            {"text": self._("new_export"), "command": self._on_new_export, "style": "Success.TButton"},
-            {"text": self._("delete_selected"), "command": self._on_delete_selected, "style": "Danger.TButton"},
-            {"text": self._("settings"), "command": self._on_settings, "style": "TButton"},
+            {
+                "text": self._("new_export"),
+                "command": self._on_new_export,
+                "style": "Success.TButton",
+            },
+            {
+                "text": self._("delete_selected"),
+                "command": self._on_delete_selected,
+                "style": "Danger.TButton",
+            },
+            {
+                "text": self._("settings"),
+                "command": self._on_settings,
+                "style": "TButton",
+            },
         ]
         self.create_button_group(action_buttons_frame, buttons)
 
         # History list section
         history_section = self.create_titled_section(self.frame, "")
         history_section["frame"].pack(fill=tk.BOTH, expand=True)
-        
+
         # Create treeview with modern styling
         tree_frame = self.create_themed_frame(history_section["content"])
         tree_frame.pack(fill=tk.BOTH, expand=True, pady=8)
@@ -114,7 +124,6 @@ class HistoryView(BaseView):
 
         # Bind double-click event
         self.tree.bind("<Double-1>", self._on_item_double_click)
-
 
     def populate_tree(self, items: List[Dict[str, Any]]) -> None:
         """Populate the tree with history items."""
@@ -266,14 +275,6 @@ class HistoryView(BaseView):
         logging.debug("Widgets destroyed, recreating...")
         self.create_widgets()
         logging.debug("Widgets recreated")
-
-        # Re-register callbacks after recreation
-        if hasattr(self, "_on_new_export_callback"):
-            self.widgets["new_export_button"].configure(command=self._on_new_export)
-        if hasattr(self, "_on_delete_exports_callback"):
-            self.widgets["delete_button"].configure(command=self._on_delete_selected)
-        if hasattr(self, "_on_settings_callback"):
-            self.widgets["settings_button"].configure(command=self._on_settings)
 
         # Restore state if needed and request data refresh
         if hasattr(self, "_on_filter_callback"):

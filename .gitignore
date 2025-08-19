@@ -96,8 +96,11 @@ ENV/
 
 # IDE
 .idea
-.vscode/*
+.vscode
 settings.json
+
+data
+.ruff_cache
 
 *.txt
 *.json

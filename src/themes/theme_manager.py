@@ -35,30 +35,29 @@ class ThemeManager:
         "shadow": "#00000010",  # Subtle shadow
     }
 
-    # Modern Dark theme with beautiful palette
     DARK_THEME = {
-        "bg_primary": "#0D1117",  # GitHub dark background
-        "bg_secondary": "#161B22",  # Slightly lighter dark
-        "bg_tertiary": "#21262D",  # Card background
-        "bg_card": "#161B22",  # Card background
-        "fg_primary": "#F0F6FC",  # Light text
-        "fg_secondary": "#8B949E",  # Secondary text
-        "fg_muted": "#6E7681",  # Muted text
-        "accent": "#58A6FF",  # GitHub blue
-        "accent_hover": "#79B8FF",  # Lighter blue on hover
-        "accent_light": "#1F6FEB",  # Dark blue for highlights
-        "success": "#56D364",  # GitHub green
-        "success_hover": "#7C3AED",  # Purple on hover for variety
-        "success_light": "#0C5323",  # Dark green background
-        "warning": "#E3B341",  # Yellow
-        "warning_hover": "#F59E0B",  # Orange on hover
-        "warning_light": "#3D2C0E",  # Dark yellow background
-        "error": "#F85149",  # GitHub red
-        "error_hover": "#FF6B6B",  # Lighter red on hover
-        "error_light": "#3D1F1F",  # Dark red background
-        "border": "#30363D",  # Dark border
-        "border_focus": "#58A6FF",  # Blue border when focused
-        "shadow": "#00000040",  # Darker shadow
+        "bg_primary": "#0F172A",  # Midnight blue primary
+        "bg_secondary": "#1E293B",  # Lighter midnight
+        "bg_tertiary": "#334155",  # Medium midnight
+        "bg_card": "#1E2A3A",  # Card background
+        "fg_primary": "#F8FAFC",  # Pure white text
+        "fg_secondary": "#E2E8F0",  # Light gray text
+        "fg_muted": "#94A3B8",  # Muted text
+        "accent": "#3B82F6",  # Blue accent
+        "accent_hover": "#60A5FA",  # Lighter blue
+        "accent_light": "#1E3A8A",  # Dark blue highlight
+        "success": "#059669",  # Teal success
+        "success_hover": "#047857",  # Darker teal
+        "success_light": "#022C22",  # Dark teal background
+        "warning": "#D97706",  # Orange warning
+        "warning_hover": "#B45309",  # Darker orange
+        "warning_light": "#3C2412",  # Dark orange background
+        "error": "#DC2626",  # Red error
+        "error_hover": "#B91C1C",  # Darker red
+        "error_light": "#3C1214",  # Dark red background
+        "border": "#475569",  # Blue-gray border
+        "border_focus": "#3B82F6",  # Blue focus border
+        "shadow": "#00000035",  # Medium shadow
     }
 
     def __init__(self, app_data_dir: Path):
@@ -419,11 +418,11 @@ class ThemeManager:
                 )
             elif isinstance(widget, (tk.Label, tk.LabelFrame)):
                 widget.configure(
-                    background=colors["bg_primary"], 
+                    background=colors["bg_primary"],
                     foreground=colors["fg_primary"],
                     font=("Segoe UI", 10, "normal"),
                 )
-            elif isinstance(widget, tk.Entry):
+            elif isinstance(widget, tk.Entry) and not isinstance(widget, ttk.Entry):
                 widget.configure(
                     background=colors["bg_card"],
                     foreground=colors["fg_primary"],
@@ -446,6 +445,8 @@ class ThemeManager:
                     font=("Segoe UI", 10, "normal"),
                 )
             elif isinstance(widget, tk.Frame):
+                widget.configure(background=colors["bg_primary"])
+            elif isinstance(widget, tk.Canvas):
                 widget.configure(background=colors["bg_primary"])
             elif isinstance(widget, tk.Listbox):
                 widget.configure(

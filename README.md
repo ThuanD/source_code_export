@@ -14,7 +14,6 @@ A modern Python utility that exports the directory structure and content of your
 - Dark/light theme support
 - Multilingual (English and Vietnamese)
 - Multiple export formats (TXT, Markdown, HTML, JSON)
-- Source code statistics and analysis
 - Export history management
 - Search and filter capabilities
 - Progress bar and status updates

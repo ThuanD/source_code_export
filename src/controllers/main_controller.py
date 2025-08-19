@@ -1,6 +1,5 @@
 import logging
 import tkinter as tk
-from tkinter import ttk
 import queue
 import threading
 import webbrowser
@@ -38,6 +37,10 @@ class MainController:
 
         # Apply theme to ttk widgets
         self.theme_manager.apply_theme_to_ttk()
+
+        # Apply theme to the root window and register for changes
+        self._update_root_theme()
+        self.theme_manager.register_theme_change_callback(self._update_root_theme)
 
         # Create initial view
         self._create_history_view()
@@ -132,8 +135,6 @@ class MainController:
             "exclude_extensions": [],
             "output_format": "txt",
             "exclude_size_above": 0,
-            "include_stats": True,
-            "compare_previous": False,
         }
 
         self.export_view.set_values(default_config)
@@ -294,13 +295,6 @@ class MainController:
             if progress_timer:
                 progress_timer.cancel()
 
-            # Compare with previous export if requested
-            comparison_result = None
-            if params.get("compare_previous", False):
-                prev_output = params.get("previous_output")
-                if prev_output:
-                    comparison_result = exporter.compare_exports(Path(prev_output))
-
             # Update history with stats
             if self.current_path:
                 self.history_manager.update_stats(self.current_path, stats)
@@ -311,7 +305,6 @@ class MainController:
                     "status": "complete",
                     "output_file": output_file,
                     "stats": stats,
-                    "comparison": comparison_result,
                 }
             )
         except Exception as e:
@@ -341,12 +334,6 @@ class MainController:
                 )
                 self.export_view.set_running_state(False)
 
-                # Lấy thông tin
-                output_file = message.get("output_file", "")
-                stats = message.get("stats", {})
-
-                # Hiển thị thống kê
-                self._show_export_complete_dialog(output_file, stats)
             elif status == "error":
                 # Export failed
                 error_message = message.get("message", "Unknown error")
@@ -367,285 +354,6 @@ class MainController:
         except Exception:
             logging.exception("Error checking export status")
             self.export_view.set_running_state(False)
-
-    def _show_export_complete_dialog(
-        self, output_file: str, stats: Dict[str, Any]
-    ) -> None:
-        """Show export complete dialog with stats."""
-        dialog = tk.Toplevel(self.root)
-        dialog.title(self.language_manager.get_text("export_complete"))
-        dialog.transient(self.root)
-        dialog.geometry("550x450")
-
-        # Apply theme
-        colors = self.theme_manager.get_current_theme_colors()
-        dialog.configure(bg=colors["bg_primary"])
-
-        # Title
-        title_label = tk.Label(
-            dialog,
-            text=self.language_manager.get_text("stats_title"),
-            font=("Arial", 16, "bold"),
-            bg=colors["bg_primary"],
-            fg=colors["fg_primary"],
-        )
-        title_label.pack(pady=(20, 5))
-
-        # Output file path display
-        path_frame = tk.Frame(dialog, bg=colors["bg_primary"])
-        path_frame.pack(fill=tk.X, padx=20, pady=(0, 10))
-
-        path_label = tk.Label(
-            path_frame,
-            text=self.language_manager.get_text("output_path", "Output path") + ":",
-            anchor="w",
-            bg=colors["bg_primary"],
-            fg=colors["fg_primary"],
-            font=("Arial", 9, "bold"),
-        )
-        path_label.pack(side=tk.LEFT, padx=(0, 5))
-
-        # Shorten path if too long
-        display_path = output_file
-        if len(output_file) > 50:
-            display_path = "..." + output_file[-50:]
-
-        path_value = tk.Label(
-            path_frame,
-            text=display_path,
-            anchor="w",
-            bg=colors["bg_primary"],
-            fg=colors["fg_secondary"],
-            font=("Arial", 9),
-        )
-        path_value.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        # Create notebook for stats tabs
-        notebook = ttk.Notebook(dialog)
-        notebook.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
-
-        # Summary tab
-        summary_tab = tk.Frame(notebook, bg=colors["bg_primary"])
-        notebook.add(
-            summary_tab, text=self.language_manager.get_text("summary_tab", "Summary")
-        )
-
-        # File types tab
-        types_tab = tk.Frame(notebook, bg=colors["bg_primary"])
-        notebook.add(
-            types_tab,
-            text=self.language_manager.get_text("file_types_tab", "File Types"),
-        )
-
-        # Stats summary
-        basic_stats = [
-            ("total_dirs", stats.get("total_dirs", 0)),
-            ("total_files", stats.get("total_files", 0)),
-            ("total_size", self._format_size(stats.get("total_size", 0))),
-            ("exported_files", stats.get("exported_files", 0)),
-            ("exported_size", self._format_size(stats.get("exported_size", 0))),
-            ("skipped_files", stats.get("skipped_files", 0)),
-        ]
-
-        # Create summary stats section
-        for idx, (key, value) in enumerate(basic_stats):
-            stat_frame = tk.Frame(summary_tab, bg=colors["bg_primary"])
-            stat_frame.pack(fill=tk.X, pady=2)
-
-            # Alternate row colors
-            row_bg = colors["bg_secondary"] if idx % 2 == 1 else colors["bg_primary"]
-            stat_frame.configure(bg=row_bg)
-
-            stat_label = tk.Label(
-                stat_frame,
-                text=f"{self.language_manager.get_text(key)}:",
-                anchor="w",
-                bg=row_bg,
-                fg=colors["fg_primary"],
-                width=20,
-                padx=10,
-                pady=5,
-            )
-            stat_label.pack(side=tk.LEFT)
-
-            value_label = tk.Label(
-                stat_frame,
-                text=str(value),
-                anchor="w",
-                bg=row_bg,
-                fg=colors["fg_primary"],
-                padx=10,
-                pady=5,
-            )
-            value_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        # File types (all)
-        file_types = stats.get("file_types", {})
-        if file_types:
-            # Create scrollable frame for file types
-            types_canvas = tk.Canvas(
-                types_tab, bg=colors["bg_primary"], highlightthickness=0
-            )
-            types_scrollbar = ttk.Scrollbar(
-                types_tab, orient="vertical", command=types_canvas.yview
-            )
-            types_scrollable_frame = tk.Frame(types_canvas, bg=colors["bg_primary"])
-
-            types_scrollable_frame.bind(
-                "<Configure>",
-                lambda e: types_canvas.configure(scrollregion=types_canvas.bbox("all")),
-            )
-
-            types_canvas.create_window(
-                (0, 0), window=types_scrollable_frame, anchor="nw"
-            )
-            types_canvas.configure(yscrollcommand=types_scrollbar.set)
-
-            types_canvas.pack(side="left", fill="both", expand=True)
-            types_scrollbar.pack(side="right", fill="y")
-
-            # Header row
-            header_frame = tk.Frame(types_scrollable_frame, bg=colors["bg_tertiary"])
-            header_frame.pack(fill=tk.X, pady=(0, 5))
-
-            ext_header = tk.Label(
-                header_frame,
-                text=self.language_manager.get_text("extension", "Extension"),
-                anchor="w",
-                bg=colors["bg_tertiary"],
-                fg=colors["fg_primary"],
-                font=("Arial", 10, "bold"),
-                width=15,
-                padx=10,
-                pady=5,
-            )
-            ext_header.pack(side=tk.LEFT)
-
-            count_header = tk.Label(
-                header_frame,
-                text=self.language_manager.get_text("count", "Count"),
-                anchor="center",
-                bg=colors["bg_tertiary"],
-                fg=colors["fg_primary"],
-                font=("Arial", 10, "bold"),
-                width=10,
-                padx=10,
-                pady=5,
-            )
-            count_header.pack(side=tk.LEFT)
-
-            percentage_header = tk.Label(
-                header_frame,
-                text=self.language_manager.get_text("percentage", "Percentage"),
-                anchor="center",
-                bg=colors["bg_tertiary"],
-                fg=colors["fg_primary"],
-                font=("Arial", 10, "bold"),
-                width=15,
-                padx=10,
-                pady=5,
-            )
-            percentage_header.pack(side=tk.LEFT)
-
-            # Sort by count
-            total_files = stats.get("total_files", 0)
-            sorted_types = sorted(file_types.items(), key=lambda x: x[1], reverse=True)
-
-            for idx, (ext, count) in enumerate(sorted_types):
-                percentage = (count / total_files * 100) if total_files > 0 else 0
-
-                type_frame = tk.Frame(
-                    types_scrollable_frame,
-                    bg=colors["bg_secondary"] if idx % 2 == 1 else colors["bg_primary"],
-                )
-                type_frame.pack(fill=tk.X)
-
-                row_bg = (
-                    colors["bg_secondary"] if idx % 2 == 1 else colors["bg_primary"]
-                )
-
-                type_label = tk.Label(
-                    type_frame,
-                    text=ext,
-                    anchor="w",
-                    bg=row_bg,
-                    fg=colors["fg_primary"],
-                    width=15,
-                    padx=10,
-                    pady=3,
-                )
-                type_label.pack(side=tk.LEFT)
-
-                count_label = tk.Label(
-                    type_frame,
-                    text=str(count),
-                    anchor="center",
-                    bg=row_bg,
-                    fg=colors["fg_primary"],
-                    width=10,
-                    padx=10,
-                    pady=3,
-                )
-                count_label.pack(side=tk.LEFT)
-
-                percentage_label = tk.Label(
-                    type_frame,
-                    text=f"{percentage:.1f}%",
-                    anchor="center",
-                    bg=row_bg,
-                    fg=colors["fg_primary"],
-                    width=15,
-                    padx=10,
-                    pady=3,
-                )
-                percentage_label.pack(side=tk.LEFT)
-
-        # Buttons
-        button_frame = tk.Frame(dialog, bg=colors["bg_primary"])
-        button_frame.pack(fill=tk.X, pady=(10, 20), padx=20)
-
-        # Copy stats button
-        copy_button = tk.Button(
-            button_frame,
-            text=self.language_manager.get_text("copy_stats", "Copy Stats"),
-            command=lambda: self._copy_stats_to_clipboard(stats, output_file),
-            bg=colors["bg_secondary"],
-            fg=colors["fg_primary"],
-            relief=tk.FLAT,
-            padx=10,
-            pady=5,
-        )
-        copy_button.pack(side=tk.LEFT, padx=(0, 5))
-
-        # Open output file button
-        open_button = tk.Button(
-            button_frame,
-            text=self.language_manager.get_text("open_output"),
-            command=lambda: self._open_output_file(output_file),
-            bg=colors["accent"],
-            fg="white",
-            relief=tk.FLAT,
-            padx=10,
-            pady=5,
-        )
-        open_button.pack(side=tk.LEFT, padx=5)
-
-        # Close button
-        close_button = tk.Button(
-            button_frame,
-            text=self.language_manager.get_text("close"),
-            command=dialog.destroy,
-            bg=colors["bg_tertiary"],
-            fg=colors["fg_primary"],
-            relief=tk.FLAT,
-            padx=10,
-            pady=5,
-        )
-        close_button.pack(side=tk.RIGHT)
-
-        # Make dialog modal
-        dialog.grab_set()
-        self.root.wait_window(dialog)
 
     def _copy_stats_to_clipboard(self, stats: Dict[str, Any], output_file: str) -> None:
         """Copy export statistics to clipboard."""
@@ -741,3 +449,8 @@ class MainController:
                 return f"{size_bytes / 1024:.2f} {unit}"
             size_bytes /= 1024
         return f"{size_bytes:.2f} TB"  # Should never reach here for code projects
+
+    def _update_root_theme(self) -> None:
+        """Apply the current theme to the root window."""
+        colors = self.theme_manager.get_current_theme_colors()
+        self.root.configure(background=colors["bg_primary"])
